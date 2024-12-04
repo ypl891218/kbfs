@@ -26,7 +26,11 @@ void send_command(int socket, const char* command) {
     printf("\n");
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc <= 1) {
+       perror("Server IP needed");
+       exit(EXIT_FAILURE);
+    }
     int client_socket;
     struct sockaddr_in server_address;
 
@@ -41,7 +45,7 @@ int main() {
     server_address.sin_port = htons(PORT);
 
     // Convert and set server IP
-    if (inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, argv[1], &server_address.sin_addr) <= 0) {
         perror("Invalid address or address not supported");
         close(client_socket);
         exit(EXIT_FAILURE);
