@@ -7,7 +7,7 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
-#define MAX_CLIENTS 100
+#define MAX_CLIENTS 200
 
 typedef struct {
     int client_socket;
@@ -57,7 +57,6 @@ void* handle_client(void* arg) {
                 sz += bytes_sent;
             }
 
-            printf("%d\n", sz);
             fclose(file);
         }
     } else if (strcmp(command, "WRITE") == 0) {
@@ -130,7 +129,7 @@ int main() {
             continue;
         }
 
-        printf("New client connected\n");
+        printf("New client connected: %d\n", thread_count);
 
         // Create a thread to handle the client
         if (pthread_create(&threads[thread_count++], NULL, handle_client, client_data) != 0) {
@@ -146,7 +145,6 @@ int main() {
         // Limit to 100 clients
         if (thread_count >= MAX_CLIENTS) {
             printf("Maximum clients reached. Refusing new connections.\n");
-            break;
         }
     }
 
