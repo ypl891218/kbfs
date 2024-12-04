@@ -7,23 +7,29 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
-void send_command(int socket, const char* command) {
+void send_command(int socket, const char* command, const char* file_path) {
+    // Open the file for writing
+    FILE* output_file = fopen(file_path, "w");
+    if (!output_file) {
+        perror("Failed to open file");
+        return;
+    }
+
     send(socket, command, strlen(command), 0);
 
     char buffer[BUFFER_SIZE];
     ssize_t bytes_received;
-    printf("Server Response:\n");
 
     // Receive server response
     while ((bytes_received = recv(socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
-        buffer[bytes_received] = '\0';
-        printf("%s", buffer);
-        // Exit if less data received indicates end of response
-        if (bytes_received < BUFFER_SIZE - 1) {
-            break;
-        }
+        printf("%d\n", bytes_received);
+        buffer[bytes_received] = '\0'; // Null-terminate the received data
+
+        // Write buffer content to the file
+        fwrite(buffer, sizeof(char), bytes_received, output_file);
     }
-    printf("\n");
+    // Close the file
+    fclose(output_file);
 }
 
 int main(int argc, char *argv[]) {
@@ -33,6 +39,11 @@ int main(int argc, char *argv[]) {
     }
     int client_socket;
     struct sockaddr_in server_address;
+ 	char input[BUFFER_SIZE];
+   	char command[BUFFER_SIZE];
+    char mode[128];
+    char serverpath[128];
+    char filepath[128];
 
     // Create socket
     if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -58,24 +69,61 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Connected to the server.\n");
+    // Option variables
+    int opt;
+    char *command_str = NULL;  // Will hold the command passed with -c
 
-    while (1) {
-        char command[BUFFER_SIZE];
-        printf("\nEnter a command (READ <filename>, WRITE <filename> <content>, or EXIT):\n> ");
-        fgets(command, BUFFER_SIZE, stdin);
-
-        // Remove trailing newline
-        command[strcspn(command, "\n")] = '\0';
-
-        if (strcmp(command, "EXIT") == 0) {
-            printf("Exiting client.\n");
-            break;
+    // Parse command-line options
+    while ((opt = getopt(argc, argv, "c:")) != -1) {
+        switch (opt) {
+            case 'c':
+                command_str = optarg; // Store the command passed via -c
+                break;
+            default:
+                fprintf(stderr, "Usage: %s <server_ip> [-c \"command\"]\n", argv[0]);
+                exit(EXIT_FAILURE);
         }
-
-        send_command(client_socket, command);
     }
 
+    if (command_str) {
+        // Parse the command string (e.g., "READ /path/to/file clientfile")
+        if (sscanf(command_str, "%s %s %s", mode, serverpath, filepath) != 3) {
+            fprintf(stderr, "Invalid command format. Expected: READ/WRITE <server_path> <client_path>\n");
+            exit(EXIT_FAILURE);
+        }
+
+        snprintf(command, BUFFER_SIZE, "%s %s", mode, serverpath);
+        printf("%s\n", command);
+        // Send the command directly
+        send_command(client_socket, command, filepath);
+
+        return 0;
+    }
+
+    printf("Connected to the server.\n");
+	while (1) {
+    	printf("\nEnter a command (READ <server_path> <client_path>, WRITE <server_path> <client_path>, or EXIT):\n> ");
+    	fgets(input, BUFFER_SIZE, stdin);
+
+    	// Remove trailing newline
+    	input[strcspn(input, "\n")] = '\0';
+
+    	if (strcmp(input, "EXIT") == 0) {
+        	printf("Exiting client.\n");
+        	break;
+    	}
+        // Parse the input into command (READ <server_path> or WRITE <server_path>) and filepath
+        if (sscanf(input, "%s %s %s", mode, serverpath, filepath) != 3) {
+            printf("Invalid command format. Please use READ <server_path> <client_path> or WRITE <server_path> <client_path>.\n");
+            continue;
+        }
+
+        // Combine the command and server_path into a single command string
+        snprintf(command, BUFFER_SIZE, "%s %s", mode, serverpath);
+
+    	// Send the command (excluding filepath) and handle the file path separately
+    	send_command(client_socket, command, filepath);
+	}
     close(client_socket);
     return 0;
 }
