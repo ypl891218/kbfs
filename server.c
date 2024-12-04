@@ -36,12 +36,28 @@ void* handle_client(void* arg) {
 
     if (strcmp(command, "READ") == 0) {
         FILE* file = fopen(filename, "r");
+	printf("%s\n", filename);
+	fflush(stdout);
         if (file == NULL) {
-            send(client_socket, "ERROR: File not found\n", 22, 0);
+            perror("ERROR: File not found");
+    	    send(client_socket, "ERROR: File not found\n", 22, 0);
         } else {
-            while (fgets(buffer, BUFFER_SIZE, file) != NULL) {
-                send(client_socket, buffer, strlen(buffer), 0);
+            int sz = 0;
+            int bytes_sent = 0;
+            while ((bytes_sent = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+                size_t total_sent = 0;
+                while (total_sent < bytes_sent) {
+                    int result = send(client_socket, buffer + total_sent, bytes_sent - total_sent, 0);
+                    if (result < 0) {
+                        perror("Send error");
+                        fclose(file);
+                    }
+                    total_sent += result;
+                }
+                sz += bytes_sent;
             }
+
+            printf("%d\n", sz);
             fclose(file);
         }
     } else if (strcmp(command, "WRITE") == 0) {
@@ -69,6 +85,12 @@ int main() {
     // Create socket
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int opt = 1;
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt");
         exit(EXIT_FAILURE);
     }
 
