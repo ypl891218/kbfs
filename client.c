@@ -23,7 +23,7 @@ void send_command(int socket, const char* command, const char* file_path) {
     // Receive server response
     while ((bytes_received = recv(socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
         buffer[bytes_received] = '\0'; // Null-terminate the received data
-
+        printf("bytes_received = %d\n", bytes_received);
         // Write buffer content to the file
         fwrite(buffer, sizeof(char), bytes_received, output_file);
     }
