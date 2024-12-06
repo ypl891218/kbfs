@@ -18,14 +18,15 @@ void send_command(int socket, const char* command, const char* file_path) {
     send(socket, command, strlen(command), 0);
 
     char buffer[BUFFER_SIZE];
+    ssize_t total_received = 0;
     ssize_t bytes_received;
 
     // Receive server response
     while ((bytes_received = recv(socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
         buffer[bytes_received] = '\0'; // Null-terminate the received data
-        printf("bytes_received = %d\n", bytes_received);
         // Write buffer content to the file
         fwrite(buffer, sizeof(char), bytes_received, output_file);
+        total_received += bytes_received;
     }
     // Close the file
     fclose(output_file);

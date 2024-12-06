@@ -2,6 +2,7 @@
 
 # Server IP address
 SERVER_IP="128.105.145.157"
+#SERVER_IP="10.10.1.1"
 
 # Temporary file to store latencies
 LATENCY_FILE="latencies.txt"
@@ -51,7 +52,7 @@ run() {
     echo "$latency" >> "$LATENCY_FILE"
 }
 
-for i in $(seq 1 200); do
+for i in $(seq 1 100); do
     run &
 done
 
