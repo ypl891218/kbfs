@@ -128,6 +128,16 @@ void* handle_client(void* arg) {
     printf("handle_client: %d!\n", client_socket);
     fflush(stdout);
 
+    char *procid = (char*)malloc(sizeof(char)*64);
+    snprintf(procid, 64, "--proc-id=%d", data->id);
+    char *ff_argv[4] = {
+        "./ganesha.nfsd",
+        "--conf=/data/f-stack/config.ini",
+        "--proc-type=secondary",
+    };
+    ff_argv[3] = procid;
+    ff_init(4, ff_argv);
+
     data->my_kq = ff_kqueue();
     EV_SET(&(data->my_kevent), client_socket, EVFILT_READ | EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, MAX_EVENTS, NULL);
     if (ff_kevent(data->my_kq, &(data->my_kevent), 1, NULL, 0, NULL)) {
@@ -186,6 +196,8 @@ int loop(void *arg) {
                 if (fork() == 0) {
                     handle_client(client_data);
                 }
+                //EV_SET(&kevSet, client_data->client_socket, EVFILT_READ, EV_ADD, 0, 0, NULL);
+                //ff_kevent(kq, &kevSet, 1, NULL, 0, NULL);
                 available--;
             } while (available);
             
@@ -194,6 +206,17 @@ int loop(void *arg) {
                 printf("Maximum clients reached. Refusing new connections.\n");
                 break;
             }
+        } else if (event.filter == EVFILT_READ) {
+            char buf[256];
+            ssize_t readlen = ff_read(clientfd, buf, sizeof(buf));
+            ssize_t writelen = ff_write(clientfd, html, sizeof(html) - 1);
+            if (writelen < 0){
+                printf("ff_write failed:%d, %s\n", errno,
+                    strerror(errno));
+                ff_close(clientfd);
+            }
+            printf("write %d bytes\n", writelen);
+            ff_close(clientfd);
         }
     }
     for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -207,7 +230,7 @@ int main() {
         "./ganesha.nfsd",
         "--conf=/data/f-stack/config.ini",
         "--proc-type=primary",
-        "--proc-id=0"
+        "--proc-id=0",
     };
     ff_init(4, ff_argv);    
 
