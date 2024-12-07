@@ -6,7 +6,7 @@ PKGCONF ?= pkg-config
 CFLAGS_FF = $(CFLAGS) -g -gdwarf-2 $(shell $(PKGCONF) --cflags libdpdk)
 
 # Executables
-NEWSERVER = new_server
+NEWSERVER = ff_server_poll
 FFSERVER = ff_server
 SERVER = server
 CLIENT = client
@@ -19,8 +19,8 @@ LIBS+= $(shell $(PKGCONF) --static --libs libdpdk)
 LIBS+= -L${FF_PATH}/lib -Wl,--whole-archive,-lfstack,--no-whole-archive
 LIBS+= -Wl,--no-whole-archive -lrt -lm -ldl -lcrypto -pthread -lnuma
 
-$(NEWSERVER): new_server.cpp
-	g++ $(CFLAGS_FF) -o $(NEWSERVER) new_server.cpp $(LIBS)
+$(NEWSERVER): ff_server_poll.cpp
+	g++ $(CFLAGS_FF) -o $(NEWSERVER) ff_server_poll.cpp $(LIBS)
 
 # Compile the ff server
 $(FFSERVER): ff_server.c
