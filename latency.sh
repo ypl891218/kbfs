@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Server IP address
-SERVER_IP="128.105.145.157"
-#SERVER_IP="10.10.1.1"
+# SERVER_IP="128.105.145.157"
+SERVER_IP="10.10.1.1"
 
 # Temporary file to store latencies
 LATENCY_FILE="latencies.txt"

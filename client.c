@@ -27,9 +27,11 @@ void send_command(int socket, const char* command, const char* file_path) {
         // Write buffer content to the file
         fwrite(buffer, sizeof(char), bytes_received, output_file);
         total_received += bytes_received;
+ //       printf("bytes_received %d\n", bytes_received);
     }
     // Close the file
     fclose(output_file);
+    close(socket);
 }
 
 int main(int argc, char *argv[]) {
